@@ -94,5 +94,5 @@ def retrieve_fingerprint(data, call, name):
                 aspect='auto', origin='lower', cmap='plasma')
     # plt.imshow(librosa.power_to_db(np.abs(spec.T), ref=np.max),
     #             aspect='auto', origin='lower')
-    # plt.show()
-    plt.savefig('%s.png' % name, dpi=96)
+    plt.show()
+    # plt.savefig('%s.png' % name, dpi=96)
