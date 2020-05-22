@@ -1,27 +1,31 @@
-import librosa, librosa.display
+import librosa
+import librosa.display
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import scipy.signal as sp
+
 
 def calculate_spectrogram(y, window_size, hop_size):
-    starts  = np.arange(0,len(y),window_size-hop_size,dtype=int)
+    starts = np.arange(0, len(y), window_size-hop_size, dtype=int)
 
     # centre frames (first frame centred at t=0)
     # add zeros of size half the frame to the beggining and end of audiofile
     y = np.concatenate([np.zeros(window_size//2), y, np.zeros(window_size//2)])
     # calculate total number of frames
     frame_count = int(np.floor(len(y) - window_size) / hop_size + 1)
-    
+
     # derive some variables
     ffts = int(window_size / 2)
-    _ = int(window_size / 2)  # bins - initial number equal to ffts, can change if filters are used
-        
+    # bins - initial number equal to ffts, can change if filters are used
+    _ = int(window_size / 2)
+
     # init STFT matrix
     stft = np.empty([frame_count, ffts], np.complex)
-        
+
     # create windowing function
     window = np.hanning(window_size)
-        
+
     # step through all frames
     for frame in range(frame_count):
         start = frame * hop_size
@@ -29,7 +33,7 @@ def calculate_spectrogram(y, window_size, hop_size):
         # multiply the signal with the window function
         signal = signal * window
         # DFT
-        stft[frame] = np.fft.fft(signal, window_size)[:ffts]  
+        stft[frame] = np.fft.fft(signal, window_size)[:ffts]
         # next frame
     # magnitude spectrogram
     spec = np.abs(stft)
@@ -37,6 +41,7 @@ def calculate_spectrogram(y, window_size, hop_size):
     specX = specX.T
 
     return specX, starts
+
 
 def return_bat_calls(call_datapath, sr=500000, plot=False):
     # the synthesised bat call (samling frequency = 500kHz)
@@ -56,11 +61,13 @@ def return_bat_calls(call_datapath, sr=500000, plot=False):
         plt.subplot(2, 1, 2)
         # spectrogram of a call
         D = librosa.stft(np.trim_zeros(bat_call), n_fft=64)
-        plt.imshow(librosa.power_to_db(np.abs(D), ref=np.max), aspect='auto', origin='lower')
+        plt.imshow(librosa.power_to_db(np.abs(D), ref=np.max),
+                   aspect='auto', origin='lower')
         # plt.colorbar()
         plt.show()
 
     return call1, call2, call3
+
 
 def load_data(path_to_csv, show_head=False):
     # changing the BOM NaN value to zero until a better solution is found
@@ -71,13 +78,14 @@ def load_data(path_to_csv, show_head=False):
 
     return data
 
+
 def retrieve_fingerprint(data, call, name):
     data = data.to_numpy()
     # n_fft = 65536
     n_fft = 131072
     hop_size = n_fft//32
     x = n_fft // 2
-    y = 1 
+    y = 1
     zeros = np.zeros((101, x, y))
 
     for i, ir in enumerate(data):
@@ -87,12 +95,10 @@ def retrieve_fingerprint(data, call, name):
         # bat call over fingerprint
         # echo = np.convolve(np.trim_zeros(ir), np.trim_zeros(call))
         # zeros[i], _ = calculate_spectrogram(np.trim_zeros(echo), n_fft, hop_size)
-    
+
     spec = zeros.reshape(101, x*y)
 
-    plt.imshow(librosa.power_to_db(np.abs(spec.T), ref=np.max),
-                aspect='auto', origin='lower', cmap='plasma')
-    # plt.imshow(librosa.power_to_db(np.abs(spec.T), ref=np.max),
-    #             aspect='auto', origin='lower')
-    plt.show()
-    # plt.savefig('%s.png' % name, dpi=96)
+    plt.imshow(np.abs(spec.T), aspect='auto',
+               origin='lower')
+    plt.savefig('%s.png' % name, dpi=96)
+
