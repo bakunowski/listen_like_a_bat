@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from scipy import signal
+from matplotlib.colors import LogNorm
 
 
 def calculate_spectrogram(y, window_size, hop_size):
@@ -95,11 +96,12 @@ def retrieve_fingerprint(data, call, name):
 
     for i, ir in enumerate(data):
         # echo fingerprint
-        zeros[i], _ = calculate_spectrogram(ir, n_fft, hop_size)
+        zeros[i], _ = calculate_spectrogram(np.trim_zeros(ir), n_fft, hop_size)
 
     spec = zeros.reshape(101, x*y)
 
     plt.rcParams.update({'font.size': 12})
+    plt.rcParams.update({'figure.dpi': 300})
 
     ks = np.linspace(0, spec.shape[1], 15)
     ksHz = get_kHz_scale_vec(ks, 500000, n_fft*y)
@@ -115,10 +117,12 @@ def retrieve_fingerprint(data, call, name):
     axes.set_xlim([0, None])
     axes.set_ylim([280, 1320])
 
-    plt.imshow(np.abs(spec.T), aspect='auto',
-               origin='lower')
+    plt.imshow(spec.T, aspect='auto',
+               origin='lower', vmin=-54, vmax=-6)
+    plt.colorbar()
     plt.show()
     # plt.savefig('%s.png' % name, dpi=96)
+
 
 def get_convolved_call(data, call, name):
     data = data.to_numpy()
@@ -127,16 +131,25 @@ def get_convolved_call(data, call, name):
 
     for ir in data:
         # bat call over each ir
-        echo = np.convolve(call, ir) 
-        f, t, spec = signal.spectrogram(np.trim_zeros(echo), fs=500000, window='hann', nperseg=perseg,
-                                        noverlap=perseg-1, detrend=False, scaling='spectrum')
+        echo = np.convolve(call, ir)
+        f, t, spec = signal.spectrogram(np.trim_zeros(echo), fs=500000,
+                                        window='hann', nperseg=perseg,
+                                        noverlap=perseg-1, detrend=False,
+                                        scaling='spectrum')
 
-        plt.rcParams.update({'font.size': 12})
+    plt.rcParams.update({'font.size': 12})
+    plt.rcParams.update({'figure.dpi': 300})
 
-        # plt.pcolormesh(t, f / 1000, spec, cmap='magma')
-        plt.pcolormesh(t, f / 1000, 10 *  np.log10(spec))
-        plt.ylabel('Frequency [kHz]')
-        plt.xlabel('Time [s]')
-        plt.show()
-        # plt.savefig('%s_Glosso_%s' % (name, round(starting_angle)), dpi=96)
-        # starting_angle += 1.8
+    spec_dB = 10 * np.log10(spec)
+    spec_min, spec_max = -100, -60
+
+    # plt.pcolormesh(t, f / 1000, spec_dB, cmap='magma')
+    # plt.pcolormesh(t, f / 1000, spec_dB)
+    plt.pcolormesh(t, f / 1000, spec_dB, vmin=spec_min, vmax=spec_max,
+                   cmap='magma')
+    plt.colorbar()
+    plt.ylabel('Frequency [kHz]')
+    plt.xlabel('Time [s]')
+    plt.show()
+    # plt.savefig('%s_Glosso_%s' % (name, round(starting_angle)), dpi=96)
+    # starting_angle += 1.8
