@@ -44,30 +44,41 @@ def calculate_spectrogram(y, window_size, hop_size):
     return specX, starts
 
 
-def return_bat_calls(call_datapath, sr=500000, plot=False):
+def return_bat_calls(call_datapath, filename, sr=500000, plot=False, split=False):
     # the synthesised bat call (samling frequency = 500kHz)
     bat_call, sr = librosa.core.load(call_datapath, sr=sr)
 
-    # naive separation of calls
-    # TODO: change this!
-    call1 = bat_call[2500:4000]
-    call2 = bat_call[9500:11000]
-    call3 = bat_call[18500:20000]
+    if split == True:
+        splits = librosa.effects.split(bat_call, top_db=15)
+        print(splits)
 
-    if plot == True:
-        plt.subplot(2, 1, 1)
-        # call waveform
-        librosa.display.waveplot(bat_call, sr=sr)
+    for split in splits:
+        if plot == True:
+            perseg = 256
+            # plt.rcParams.update({'font.size': 12})
+            # plt.rcParams.update({'figure.dpi': 300})
 
-        plt.subplot(2, 1, 2)
-        # spectrogram of a call
-        D = librosa.stft(np.trim_zeros(bat_call), n_fft=64)
-        plt.imshow(librosa.power_to_db(np.abs(D), ref=np.max),
-                   aspect='auto', origin='lower')
-        # plt.colorbar()
-        plt.show()
+            # plt.subplot(2, 1, 1)
+            # # call waveform
+            # librosa.display.waveplot(bat_call[split[0]:split[1]], sr=sr)
 
-    return call1, call2, call3
+            # plt.subplot(2, 1, 2)
+            # spectrogram of a call
+            f, t, spec = signal.spectrogram(bat_call[split[0]:split[1]], fs=sr,
+                                            window='hann', nperseg=perseg,
+                                            noverlap=perseg-20, detrend=False,
+                                            scaling='spectrum')
+
+            spec_dB = 10 * np.log10(spec)
+            spec_min, spec_max = -65, -15
+
+            plt.pcolormesh(t, f / 1000, spec_dB, vmin=spec_min, vmax=spec_max)
+            # plt.colorbar()
+            # plt.savefig('%s_%s.png' % (filename, split[0]))
+            plt.show()
+            plt.close()
+            break
+    return split
 
 
 def load_data(path_to_csv, show_head=False):
@@ -81,9 +92,9 @@ def load_data(path_to_csv, show_head=False):
 
 
 def get_kHz_scale_vec(ks, sample_rate, Npoints):
-    freq_kHz = (ks*sample_rate/Npoints) // 1000
-    freq_kHz = [int(i) for i in freq_kHz]
-    return(freq_kHz)
+    frequency_kHz = (ks*sample_rate/Npoints) // 1000
+    frequency_kHz = [int(i) for i in frequency_kHz]
+    return(frequency_kHz)
 
 
 def retrieve_fingerprint(data, call, name):
@@ -130,12 +141,14 @@ def get_convolved_call(data, call, name):
     starting_angle = -90
 
     for ir in data:
+        print(ir)
         # bat call over each ir
         echo = np.convolve(call, ir)
         f, t, spec = signal.spectrogram(np.trim_zeros(echo), fs=500000,
                                         window='hann', nperseg=perseg,
                                         noverlap=perseg-1, detrend=False,
                                         scaling='spectrum')
+        break
 
     plt.rcParams.update({'font.size': 12})
     plt.rcParams.update({'figure.dpi': 300})
@@ -143,13 +156,11 @@ def get_convolved_call(data, call, name):
     spec_dB = 10 * np.log10(spec)
     spec_min, spec_max = -100, -60
 
-    # plt.pcolormesh(t, f / 1000, spec_dB, cmap='magma')
-    # plt.pcolormesh(t, f / 1000, spec_dB)
     plt.pcolormesh(t, f / 1000, spec_dB, vmin=spec_min, vmax=spec_max,
                    cmap='magma')
-    plt.colorbar()
+    # plt.colorbar()
     plt.ylabel('Frequency [kHz]')
     plt.xlabel('Time [s]')
     plt.show()
     # plt.savefig('%s_Glosso_%s' % (name, round(starting_angle)), dpi=96)
-    # starting_angle += 1.8
+    starting_angle += 1.8
