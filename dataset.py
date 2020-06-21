@@ -4,23 +4,22 @@ import numpy as np
 import librosa
 from scipy import signal
 from torch.utils.data import Dataset, DataLoader
+from random import randint
 import matplotlib.pyplot as plt
-# TODO:
-# get rid of NaN values DONE
 
-# one hot encoding of classes path:
-# perhaps as a csv file with name of audio file and encoding?
+# Csv file with folder/name of audio file and class
+labelscv = "/home/bakunowski/Documents/QueenMary/FinalProject/listen_like_a_bat/listen_like_a_bat.csv"
 
-# path to IR file
-# TODO: this only loads file for one flower (one measurment)
-# extend to load for different flowers with batches etc!!!!!
-ir_path = "/home/bakunowski/Documents/QueenMary/FinalProject/listen_like_a_bat/FlowerClassification/FlowerIRs/Burmeist_h_impuls/Burmeist h I 20cm_2009-06-29_NA_2019-08-11_impuls.csv"
+# Path to folder with folders containing .csv files with impulse responses
+folder = "/home/bakunowski/Documents/QueenMary/FinalProject/listen_like_a_bat/"
 
-# path to bat call
+# Path to bat call
 call_datapath = "/home/bakunowski/Documents/QueenMary/FinalProject/listen_like_a_bat/FlowerClassification/EcholocationCalls/Glosso_call.wav"
 
-maxfilestoload = 100
+maxfilestoload = 111
 sr = 500000
+# 180 deg / 101 measurments: each measurment is taken every 1.78... deg
+angle_calc_multiplier = 1.7821782178217822
 
 
 class Echoes(Dataset):
@@ -28,8 +27,8 @@ class Echoes(Dataset):
         This instance will load a bat call convolved with one of the impulse
         responses of one flower - one echo. """
 
-    def __init__(self, ir_csv_file, bat_call_path, size, transform=None):
-        # def __init__(self, csv_file, ir_csv, bat_call, size, transform=None):
+    # def __init__(self, ir_csv_file, bat_call_path, size, transform=None):
+    def __init__(self, csv_file, bat_call_path, size, transform=None):
         """
         Args:
             csv_file (string): Path to csv file with annotations
@@ -40,13 +39,10 @@ class Echoes(Dataset):
                                             on a sample.
             size (int): how many data samples to load
         """
-        # self.plant_name = pd.read_csv(csv_file)
+        self.plant_name = pd.read_csv(csv_file)
         self.transform = transform
         self.size = size
-        # self.ir_csv = pd.read_csv(ir_csv_file, sep='\t', header=None)
-        self.ir_csv = self.load_data(ir_csv_file)
         self.bat_call = self.get_bat_call(bat_call_path, plot=False)
-        self.echo = []
 
     def __len__(self):
         return self.size
@@ -54,16 +50,17 @@ class Echoes(Dataset):
     def load_data(self, path_to_csv):
         data = pd.read_csv(path_to_csv, sep='\t', header=None)
         data = data.fillna(0)
+        data = data.to_numpy()
         return data
 
     def get_echo(self, idx, plot=False):
-        ir_csv = self.ir_csv.to_numpy()
+        ir_csv = self.load_data(folder + self.plant_name.iloc[idx, 0])
         perseg = 256
-        # TODO: how to calculate this angle properly?
-        # starting_angle = -90
+        angle = idx * angle_calc_multiplier
 
-        echo = np.convolve(self.bat_call, ir_csv[idx])
-        f, t, spec = signal.spectrogram((echo), fs=500000,
+        # get a random echo from csv file for now
+        echo = np.convolve(self.bat_call, ir_csv[randint(0, 100)])
+        f, t, spec = signal.spectrogram(echo, fs=500000,
                                         window='hann', nperseg=perseg,
                                         noverlap=perseg-1, detrend=False,
                                         scaling='spectrum')
@@ -88,6 +85,7 @@ class Echoes(Dataset):
         perseg = 256
         splits = librosa.effects.split(bat_call, top_db=15)
         new_call = bat_call[splits[0][0]:splits[0][1]]
+
         if plot:
             f, t, spec = signal.spectrogram(new_call, fs=sr,
                                             window='hann', nperseg=perseg,
@@ -99,28 +97,27 @@ class Echoes(Dataset):
 
             plt.pcolormesh(t, f / 1000, spec_dB, vmin=spec_min, vmax=spec_max)
             plt.show()
-            plt.close()
+
         return new_call
 
-    # currently getitem fetches an echo from one csv file of one flower
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        # TODO:
-        # label =
-        print(idx)
-        echo = self.get_echo(idx, plot=True)
-        return echo
+        label = self.plant_name.iloc[idx, 1]
+        echo = self.get_echo(idx, plot=False)
+
+        return label, echo
 
 
-echoes_dataset = Echoes(ir_path, call_datapath, 10)
-print(len(echoes_dataset))
+echoes_dataset = Echoes(labelscv, call_datapath, maxfilestoload)
+# print(len(echoes_dataset))
 
-test = echoes_dataset[1]
-print(test.shape)
+# label, test = echoes_dataset[1]
+# print('label: ', label)
+# print(test.shape)
 
-train_loader = DataLoader(echoes_dataset, batch_size=2, shuffle=True)
+train_loader = DataLoader(echoes_dataset, batch_size=4, shuffle=True)
 
 for i_batch, sample_batched in enumerate(train_loader):
-    print(i_batch, sample_batched.size())
+    print(i_batch, sample_batched[1].size(), sample_batched[0].size())
