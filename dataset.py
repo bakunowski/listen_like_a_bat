@@ -16,7 +16,7 @@ folder = "/home/bakunowski/Documents/QueenMary/FinalProject/listen_like_a_bat/"
 # Path to bat call
 call_datapath = "/home/bakunowski/Documents/QueenMary/FinalProject/listen_like_a_bat/FlowerClassification/EcholocationCalls/Glosso_call.wav"
 
-maxfilestoload = 111
+maxfilestoload = 10000
 sr = 500000
 # 180 deg / 101 measurments: each measurment is taken every 1.78... deg
 angle_calc_multiplier = 1.7821782178217822
@@ -45,7 +45,8 @@ class Echoes(Dataset):
         self.bat_call = self.get_bat_call(bat_call_path, plot=False)
 
     def __len__(self):
-        return self.size
+        index = self.plant_name.index
+        return len(index)
 
     def load_data(self, path_to_csv):
         data = pd.read_csv(path_to_csv, sep='\t', header=None)
@@ -59,7 +60,7 @@ class Echoes(Dataset):
         angle = idx * angle_calc_multiplier
 
         # get a random echo from csv file for now
-        echo = np.convolve(self.bat_call, ir_csv[randint(0, 100)])
+        echo = np.convolve(self.bat_call, ir_csv[0])
         f, t, spec = signal.spectrogram(echo, fs=500000,
                                         window='hann', nperseg=perseg,
                                         noverlap=perseg-1, detrend=False,
@@ -111,11 +112,7 @@ class Echoes(Dataset):
 
 
 echoes_dataset = Echoes(labelscv, call_datapath, maxfilestoload)
-# print(len(echoes_dataset))
-
-# label, test = echoes_dataset[1]
-# print('label: ', label)
-# print(test.shape)
+print(len(echoes_dataset))
 
 train_loader = DataLoader(echoes_dataset, batch_size=4, shuffle=True)
 
