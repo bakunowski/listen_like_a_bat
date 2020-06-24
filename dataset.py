@@ -27,7 +27,6 @@ class Echoes(Dataset):
         This instance will load a bat call convolved with one of the impulse
         responses of one flower - one echo. """
 
-    # def __init__(self, ir_csv_file, bat_call_path, size, transform=None):
     def __init__(self, csv_file, bat_call_path, size, transform=None):
         """
         Args:
