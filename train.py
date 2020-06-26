@@ -20,23 +20,26 @@ call_datapath = "./BatCalls/Glosso_call.wav"
 # Hyperparameters
 num_epochs = 1000
 learning_rate = 0.003
-train_dataset = 0
-test_dataset = 0
+batch_size = 16
 is_cuda = False
 
 # writer = SummaryWriter('./logdir')
 
+state_dict = {}
 model = TenInputsNet()
 
 trainset, valset = random_split(EchoesDataset(labelscv, call_datapath),
                                 [2000, 349])
-print(len(trainset))
-print(len(valset))
 
-train_loader = DataLoader(trainset, batch_size=16, shuffle=True)
-val_loader = DataLoader(valset, batch_size=16, shuffle=True)
+train_loader = DataLoader(trainset, batch_size=batch_size, shuffle=True,
+                          num_workers=4)
+val_loader = DataLoader(valset, batch_size=batch_size, shuffle=False,
+                        num_workers=4)
 
 if torch.cuda.is_available():
+    print('-' * 10, "GPU INFO", '-' * 10)
+    print("Using GPUs")
+    print("Number of GPUs: ", torch.cuda.device_count())
     model = torch.nn.DataParallel(model)
     is_cuda = True
 
@@ -44,67 +47,77 @@ criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 total_step = len(train_loader)
-print("Number of batches: ", total_step)
+print('-' * 10, "DATA INFO", '-' * 10)
+print("Number of batches in train: ", total_step)
+print("Number of batches in test: ", len(val_loader))
+print('\n')
 start_time = time.time()
 
 
-for epoch in range(num_epochs):
+for epoch in range(num_epochs):   # loop over the dataset multiple times
 
     print('Epoch {}/{}'.format(epoch+1, num_epochs))
     print('-' * 10)
+    running_loss = 0.0
+    total = 0
+    correct = 0
+    accuracy = 0
 
     for i, sample_batched in enumerate(train_loader):
-        running_loss = 0.0
-        running_corrects = 0
 
         if type(model) is DataParallel:
             model = model.cuda()
         else:
             model = model
 
+        # get the inputs; data is ...
         labels, echoes = list(
             map(lambda x: to_variable(x, is_cuda=is_cuda), sample_batched))
 
-        # print(labels.size(), echoes.size())
-        # print("Input 1:", echoes[:, 0].size())
-        # 10, 1, w, h
-        # print(echoes.size())
-        # show_echo_batch(labels, echoes)
         # show_echo_batch(labels[1], echoes[0][:, 1])
-        # show_echo_batch(labels[2], echoes[0][:, 2])
-
         echoes = echoes.float()
-        optimizer.zero_grad()
-        # print("0: ", echoes[:, 0])
-        # print("1: ", echoes[:, 1])
 
+        # zero the parameter gradients
+        optimizer.zero_grad()
+
+        # forward + backward + optimize
         outputs = model(echoes[:, 0], echoes[:, 1], echoes[:, 2],
                         echoes[:, 3], echoes[:, 4], echoes[:, 5],
                         echoes[:, 6], echoes[:, 7], echoes[:, 8], echoes[:, 9])
-        _, preds = torch.max(outputs.data, 1)
-
-        # print("Outputs: ", outputs)
-        print("Labels: ", labels)
-        print("Preds: ", preds)
-
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
 
+        # max value from each output in batch is the predicted class
+        _, preds = torch.max(outputs.data, 1)
+
+        # accuracy
+        total += labels.size(0)
+        correct += (preds == labels).sum().item()
+        accuracy += 100 * correct / total
+
+        #print("Outputs: ", outputs)
+        #print("Labels: ", labels)
+        #print("Preds: ", preds)
+        #print("Num correct: ", torch.sum(preds == labels.data))
+        #print("Percent correct: ", torch.sum(preds == labels.data).item() / batch_size)
+
         # print statistics
         running_loss += loss.item()
-        running_corrects += torch.sum(preds == labels.data)
-        if i % 10 == 0:    # print every 2000 mini-batches
+        if i % 25 == 24:    # print every 10 mini-batches
             print('[%d, %5d] loss: %.3f acc: %.1f' %
-                  (epoch + 1, i + 1, running_loss / 10, running_corrects / 10))
+                  (epoch + 1, i + 1, running_loss / 25, accuracy / 25))
             running_loss = 0.0
-            running_corrects = 0
+            total = 0
+            correct = 0
+            accuracy = 0
 
     with torch.no_grad():
-
+        running_loss = 0.0
+        total = 0
+        correct = 0
+        accuracy = 0
         for i, ds in enumerate(val_loader):
-            running_loss = 0.0
-            running_corrects = 0
 
             if type(model) is DataParallel:
                 model = model.cuda()
@@ -118,11 +131,16 @@ for epoch in range(num_epochs):
             outputs = model(echoes[:, 0], echoes[:, 1], echoes[:, 2], echoes[:, 3], echoes[:, 4],
                             echoes[:, 5], echoes[:, 6], echoes[:, 7], echoes[:, 8], echoes[:, 9])
             _, preds = torch.max(outputs.data, 1)
+
+            # accuracy
+            total += labels.size(0)
+            correct += (preds == labels).sum().item()
+            accuracy += 100 * correct / total
+
+            #print("Labels: ", labels)
+            #print("Preds: ", preds)
+
             loss = criterion(outputs, labels)
             running_loss += loss.item()
-            running_corrects += torch.sum(preds == labels.data)
-
-            if i % 10 == 0:    # print every 2000 mini-batches
-                print('Test: [%d, %5d] loss: %.3f acc: %1d' %
-                      (epoch + 1, i + 1, running_loss / 10, running_corrects / 10))
-
+        print('Test: [%d, %5d] loss: %.3f acc: %1d' %
+              (epoch + 1, i + 1, running_loss / len(val_loader), accuracy / len(val_loader)))

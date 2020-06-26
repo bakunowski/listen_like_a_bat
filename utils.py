@@ -173,3 +173,8 @@ def to_variable(tensor, is_cuda=True):
         return result.cuda()
     else:
         return result
+
+
+def normalize_0_1(values, max, min):
+    normalized = np.clip((values - min) / (max - min), 0, 1)
+    return normalized

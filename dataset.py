@@ -1,6 +1,7 @@
 import torch
 import pandas as pd
 import numpy as np
+import utils as u
 import librosa
 from scipy import signal
 from torch.utils.data import Dataset, DataLoader, random_split
@@ -19,6 +20,9 @@ maxfilestoload = 10000
 sr = 500000
 # 180 deg / 101 measurments: each measurment is taken every 1.78... deg
 angle_calc_multiplier = 1.7821782178217822
+
+MAX_DB = -100
+MIN_DB = -250
 
 
 class EchoesDataset(Dataset):
@@ -64,8 +68,11 @@ class EchoesDataset(Dataset):
                                             window='hann', nperseg=perseg,
                                             noverlap=perseg-20, detrend=False,
                                             scaling='spectrum')
-            # spec_dB = 10 * np.log10(spec)
-            spec_dB = librosa.util.normalize(spec)
+            spec_dB = 10 * np.ma.log10(spec)
+            #print("db: ", spec_dB[0])
+            spec_norm = u.normalize_0_1(spec_dB, MAX_DB, MIN_DB)
+            #print("normalized db: ", spec_norm[0])
+            #spec_dB = librosa.util.normalize(spec)
 
             if plot:
                 plt.rcParams.update({'font.size': 12})
@@ -81,7 +88,7 @@ class EchoesDataset(Dataset):
                 plt.xlabel('Time [s]')
                 plt.show()
 
-            sample.append(spec_dB)
+            sample.append(spec_norm)
 
         return np.expand_dims(sample, axis=1)
 
@@ -143,3 +150,4 @@ def show_echo_batch(label, echoes):
     fig.suptitle(
         'One input sample to the network for class #{}'.format(label), size=18)
     plt.show()
+
