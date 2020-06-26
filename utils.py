@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from scipy import signal
 from matplotlib.colors import LogNorm
+from torch.autograd import Variable
 
 
 def calculate_spectrogram(y, window_size, hop_size):
@@ -164,3 +165,11 @@ def get_convolved_call(data, call, name):
     plt.show()
     # plt.savefig('%s_Glosso_%s' % (name, round(starting_angle)), dpi=96)
     starting_angle += 1.8
+
+
+def to_variable(tensor, is_cuda=True):
+    result = Variable(tensor, requires_grad=False)
+    if is_cuda:
+        return result.cuda()
+    else:
+        return result
