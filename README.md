@@ -2,6 +2,8 @@
 
 Code for my Master's thesis at Queen Mary, UoL
 
+![](./Images/ConvolvedSpectrograms/Centpurple_h_I_Glosso_-90.png)
+
 ## Dependencies:
 
 ````bash
