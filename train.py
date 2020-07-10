@@ -20,13 +20,14 @@ call_datapath = "./BatCalls/Glosso_call.wav"
 # Hyperparameters
 num_epochs = 1000
 learning_rate = 0.003
-batch_size = 16
+batch_size = 4
 is_cuda = False
 
 # writer = SummaryWriter('./logdir')
 
 state_dict = {}
 model = TenInputsNet()
+print(model)
 
 trainset, valset = random_split(EchoesDataset(labelscv, call_datapath),
                                 [2000, 349])
@@ -74,16 +75,14 @@ for epoch in range(num_epochs):   # loop over the dataset multiple times
         labels, echoes = list(
             map(lambda x: to_variable(x, is_cuda=is_cuda), sample_batched))
 
-        # show_echo_batch(labels[1], echoes[0][:, 1])
+        # show_echo_batch(labels, echoes)
         echoes = echoes.float()
 
         # zero the parameter gradients
         optimizer.zero_grad()
 
         # forward + backward + optimize
-        outputs = model(echoes[:, 0], echoes[:, 1], echoes[:, 2],
-                        echoes[:, 3], echoes[:, 4], echoes[:, 5],
-                        echoes[:, 6], echoes[:, 7], echoes[:, 8], echoes[:, 9])
+        outputs = model(echoes)
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()

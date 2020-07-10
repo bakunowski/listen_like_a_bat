@@ -25,32 +25,57 @@ class TenInputsNet(nn.Module):
         self.linear2 = nn.Linear(in_features=64, out_features=32)
         self.linear3 = nn.Linear(in_features=32, out_features=12)
 
-    def forward(self, a, b, c, d, e, f, g, h, i, j):
-        #print("In network a: ", a.size())
-        a = self.convolve(a)
-        b = self.convolve(b)
-        c = self.convolve(c)
-        d = self.convolve(d)
-        e = self.convolve(e)
-        f = self.convolve(f)
-        g = self.convolve(g)
-        h = self.convolve(h)
-        i = self.convolve(i)
-        j = self.convolve(j)
-        x = torch.cat((a, b, c, d, e, f, g, h, i, j), 1)
+    def forward(self, a):
+        # print("First convolution", a.size())
+        x = []
+
+        for i in range(len(a[1])):
+            x.append(self.convolve(a[:, i]))
+
+        # a = self.convolve(a)
+        # b = self.convolve(b)
+        # c = self.convolve(c)
+        # d = self.convolve(d)
+        # e = self.convolve(e)
+        # f = self.convolve(f)
+        # g = self.convolve(g)
+        # h = self.convolve(h)
+        # i = self.convolve(i)
+        # j = self.convolve(j)
+
+        # print("In network after maxpool1: ", len(x))
+        # 4, 16, 63, 82
+        x = torch.cat(x[:], 1)
+        # print("In network after cat: ", x.size())
+        # 4, 160, 63, 82
+
+        # print("In network after cat: ", x.size())
         x = self.conv2(x)
-        #print("In network x: ", x.size())
+        # print("In network second conv: ", x.size())
         x = self.maxpool2(x)
-        #print("In network pooled: ", x.size())
+        # print("In network pooled: ", x.size())
         x = torch.flatten(x, start_dim=1)
-        #print("In network flat: ", x.size())
+        # print("In network flat: ", x.size())
         x = self.linear1(x)
         x = self.linear2(x)
         x = self.linear3(x)
         # print("In network a: ", x.size())
         return x
 
+#     def forward(self, input1, input2):
+#         c = self.conv(input1)
+#         f = self.fc1(input2)
+#         # now we can reshape `c` and `f` to 2D and concat them
+#         combined = torch.cat((c.view(c.size(0), -1),
+#                               f.view(f.size(0), -1)), dim=1)
+#         out = self.fc2(combined)
+#         return out
+
     def convolve(self, x):
+        print("In network before conv1: ", x.size())
+        # 4, 1, 129, 167
         x = self.conv1(x)
+        print("In network after conv1: ", x.size())
+        # 4, 16, 127, 165
         x = self.maxpool1(x)
         return x

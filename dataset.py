@@ -69,10 +69,7 @@ class EchoesDataset(Dataset):
                                             noverlap=perseg-20, detrend=False,
                                             scaling='spectrum')
             spec_dB = 10 * np.ma.log10(spec)
-            #print("db: ", spec_dB[0])
             spec_norm = u.normalize_0_1(spec_dB, MAX_DB, MIN_DB)
-            #print("normalized db: ", spec_norm[0])
-            #spec_dB = librosa.util.normalize(spec)
 
             if plot:
                 plt.rcParams.update({'font.size': 12})
@@ -101,7 +98,7 @@ class EchoesDataset(Dataset):
         if plot:
             f, t, spec = signal.spectrogram(new_call, fs=sr,
                                             window='hann', nperseg=perseg,
-                                            noverlap=perseg-20, detrend=False,
+                                            noverlap=perseg-1, detrend=False,
                                             scaling='spectrum')
 
             spec_dB = 10 * np.log10(spec)
@@ -124,30 +121,28 @@ class EchoesDataset(Dataset):
 
 # little helper to show one sample from current batch of echoes
 def show_echo_batch(label, echoes):
-    print("Label: ", label)
-    print("Echoes: ", echoes.size())
+    # print("Label: ", label)
+    # print("Echoes: ", echoes.size())
     fig = plt.figure()
     x = 0
 
     for i in range(len(echoes)):
         for j in range(len(echoes[0])):
             x += 1
-            # print(i)
-            # print(j)
-            ax = plt.subplot(4, 10, x)
-            ax.set_title('Echo #{}'.format(i+j+1))
+            ax = plt.subplot(len(echoes), len(echoes[0]), x)
+            ax.set_title('Echo {echo}, Class {clas}'.format(
+                echo=i+j+1, clas=label[i]))
             ax.axis('off')
 
-            # print(echoes[i][j][0].size())
-            # print(echoes[:, 0, 0].size())
-            new_echo = echoes[:, 0, 0]
-            # spec_dB = 10 * np.log10(echoes[i][j][0])
-            spec_dB = 10 * np.log10(new_echo[i])
+            new_echo = echoes[:, j, 0]
+            spec_dB = new_echo[i]
+            # spec_min, spec_max = 0.8, 1
             spec_min, spec_max = -100, -20
 
-            plt.pcolormesh(spec_dB, vmin=spec_min, vmax=spec_max)
+            im = plt.pcolormesh(spec_dB, vmin=spec_min,
+                                vmax=spec_max, cmap='magma')
 
     fig.suptitle(
-        'One input sample to the network for class #{}'.format(label), size=18)
+        'One input sample to the network for classes {}'.format(label.numpy()), size=18)
     plt.show()
 
