@@ -32,17 +32,6 @@ class TenInputsNet(nn.Module):
         for i in range(len(a[1])):
             x.append(self.convolve(a[:, i]))
 
-        # a = self.convolve(a)
-        # b = self.convolve(b)
-        # c = self.convolve(c)
-        # d = self.convolve(d)
-        # e = self.convolve(e)
-        # f = self.convolve(f)
-        # g = self.convolve(g)
-        # h = self.convolve(h)
-        # i = self.convolve(i)
-        # j = self.convolve(j)
-
         # print("In network after maxpool1: ", len(x))
         # 4, 16, 63, 82
         x = torch.cat(x[:], 1)
