@@ -19,8 +19,8 @@ call_datapath = "./BatCalls/Glosso_call.wav"
 
 # Hyperparameters
 num_epochs = 1000
-learning_rate = 0.003
-batch_size = 4
+learning_rate = 0.0001
+batch_size = 16
 is_cuda = False
 
 # writer = SummaryWriter('./logdir')
@@ -76,6 +76,7 @@ for epoch in range(num_epochs):   # loop over the dataset multiple times
             map(lambda x: to_variable(x, is_cuda=is_cuda), sample_batched))
 
         # show_echo_batch(labels, echoes)
+        # show_echo_batch(labels[1], echoes[0][:, 1])
         echoes = echoes.float()
 
         # zero the parameter gradients
@@ -127,8 +128,7 @@ for epoch in range(num_epochs):   # loop over the dataset multiple times
                 map(lambda x: to_variable(x, is_cuda=is_cuda), ds))
 
             echoes = echoes.float()
-            outputs = model(echoes[:, 0], echoes[:, 1], echoes[:, 2], echoes[:, 3], echoes[:, 4],
-                            echoes[:, 5], echoes[:, 6], echoes[:, 7], echoes[:, 8], echoes[:, 9])
+            outputs = model(echoes)
             _, preds = torch.max(outputs.data, 1)
 
             # accuracy
