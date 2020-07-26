@@ -29,7 +29,7 @@ state_dict = {}
 model = TenInputsNet()
 print(model)
 
-trainset, valset = random_split(EchoesDataset(labelscv, call_datapath),
+trainset, valset = random_split(EchoesDataset(labelscv, call_datapath, folder),
                                 [2000, 349])
 
 train_loader = DataLoader(trainset, batch_size=batch_size, shuffle=True,
