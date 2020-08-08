@@ -36,7 +36,7 @@ class EchoesDataset(Dataset):
         self.plant_name = pd.read_csv(csv_file)
         self.folder = datapath
         self.transform = transform
-        self.bat_call = self.get_bat_call(bat_call_path, plot=False)
+        self.bat_call = self.get_bat_call(bat_call_path, plot=True)
 
     def __len__(self):
         index = self.plant_name.index
@@ -60,11 +60,12 @@ class EchoesDataset(Dataset):
             echo = np.convolve(self.bat_call, ir_csv[i])
             f, t, spec = signal.spectrogram(echo, fs=500000,
                                             window='hann', nperseg=perseg,
-                                            noverlap=perseg-20, detrend=False,
+                                            noverlap=perseg-200, detrend=False,
                                             scaling='spectrum')
-            spec_dB = 10 * np.ma.log10(spec)
+            # spec_dB = 10 * np.ma.log10(spec)
+            spec_norm = 10 * np.ma.log10(spec)
             #print("db: ", spec_dB[0])
-            spec_norm = u.normalize_0_1(spec_dB, MAX_DB, MIN_DB)
+            # spec_norm = u.normalize_0_1(spec_dB, MAX_DB, MIN_DB)
             #print("normalized db: ", spec_norm[0])
             #spec_dB = librosa.util.normalize(spec)
 
@@ -90,7 +91,9 @@ class EchoesDataset(Dataset):
         bat_call, _ = librosa.core.load(path, sr=sr)
         perseg = 256
         splits = librosa.effects.split(bat_call, top_db=15)
-        new_call = bat_call[splits[0][0]:splits[0][1]]
+        sos = signal.butter(10, 8000, 'hp', fs=500000, output='sos')
+        new_call = bat_call[splits[2][0]:splits[2][1]]
+        new_call = signal.sosfilt(sos, new_call)
 
         if plot:
             f, t, spec = signal.spectrogram(new_call, fs=sr,
@@ -101,7 +104,8 @@ class EchoesDataset(Dataset):
             spec_dB = 10 * np.log10(spec)
             spec_min, spec_max = -65, -15
 
-            plt.pcolormesh(t, f / 1000, spec_dB, vmin=spec_min, vmax=spec_max)
+            plt.pcolormesh(t, f / 1000, spec_dB, vmin=spec_min,
+                           vmax=spec_max, cmap='magma')
             plt.show()
 
         return new_call
@@ -136,8 +140,9 @@ def show_echo_batch(label, echoes):
             # spec_min, spec_max = 0.8, 1
             spec_min, spec_max = -100, -20
 
-            im = plt.pcolormesh(spec_dB, vmin=spec_min,
-                                vmax=spec_max, cmap='magma')
+            # im = plt.pcolormesh(spec_dB, vmin=spec_min,
+            #                     vmax=spec_max, cmap='magma')
+            im = plt.pcolormesh(spec_dB, cmap='magma')
 
     fig.suptitle(
         'One input sample to the network for classes {}'.format(label.numpy()), size=18)

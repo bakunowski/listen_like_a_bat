@@ -3,16 +3,15 @@ import os
 
 current_path = os.path.dirname(os.path.realpath(__file__))
 
-folderpath = current_path + '/ShuffledData'
+folderpath = current_path + '/ShuffledData3'
 
-with open('listen_like_a_bat.csv', 'w') as f:
+with open('listen_like_a_bat3.csv', 'w') as f:
     writer = csv.writer(f)
     for dirpath, dirnames, filenames in os.walk(folderpath):
         for filename in [f for f in filenames if f.endswith(".csv")]:
             # relative_path = os.path.relpath(dirpath, current_path)
             a = filename.split()
             a = a[0][0:2]
-            print(a)
             entry = filename
             if a == 'Bt':
                 writer.writerow([entry, 0])

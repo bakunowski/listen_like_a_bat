@@ -7,7 +7,7 @@ else
 fi
 
 for file in "$dir"/*; do
-    split -dl 3 --additional-suffix=.csv "$file" "$file"
+    split -dl 10 --additional-suffix=.csv "$file" "$file"
     rm "$file"
 done
 
