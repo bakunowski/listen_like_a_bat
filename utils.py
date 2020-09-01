@@ -5,7 +5,9 @@ import pandas as pd
 import numpy as np
 from scipy import signal
 from matplotlib.colors import LogNorm
+from matplotlib.ticker import MultipleLocator 
 from torch.autograd import Variable
+from sklearn.metrics import confusion_matrix
 
 
 def calculate_spectrogram(y, window_size, hop_size):
@@ -178,3 +180,57 @@ def to_variable(tensor, is_cuda=True):
 def normalize_0_1(values, max, min):
     normalized = np.clip((values - min) / (max - min), 0, 1)
     return normalized
+
+# little helper to show one sample from current batch of echoes
+def show_echo_batch(label, echoes):
+    # print("Label: ", label)
+    # print("Echoes: ", echoes.size())
+    fig = plt.figure()
+    x = 0
+
+    for i in range(len(echoes)):
+        for j in range(len(echoes[0])):
+            x += 1
+            ax = plt.subplot(len(echoes), len(echoes[0]), x)
+            ax.set_title('Echo {echo}, Class {clas}'.format(
+                echo=i+j+1, clas=label[i]))
+            ax.axis('off')
+
+            new_echo = echoes[:, j, 0]
+            spec_dB = new_echo[i]
+            # spec_min, spec_max = 0.8, 1
+            spec_min, spec_max = -100, -20
+
+            # im = plt.pcolormesh(spec_dB, vmin=spec_min,
+            #                     vmax=spec_max, cmap='magma')
+            im = plt.pcolormesh(spec_dB, cmap='magma')
+
+    fig.suptitle(
+        'One input sample to the network for classes {}'.format(label.numpy()), size=18)
+    plt.show()
+
+def plot_confusion_matrix(y_test, pred, labels_in, epoch):
+
+    labels = ['Bt (bat)', 'Cc (bat)', 'Cj (bat)', 'Cs (bat)', 'Mm (bat)', 'Mn (bat)', 'Cq (nonBat)', 'Cr (nonBat)', 'Pg (nonBat)', 'Pp (nonBat)', 'Sc (nonBat)', 'Ws (nonBat)']
+    labelsx = ['Bt', 'Cc', 'Cj', 'Cs', 'Mm', 'Mn', 'Cq', 'Cr', 'Pg', 'Pp', 'Sc', 'Ws']
+    cm = confusion_matrix(y_test, pred, labels_in)
+    print(cm)
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    cax = ax.matshow(cm)
+    plt.title('Confusion matrix of the classifier')
+    # fig.colorbar(cax)
+    ax.set_xticklabels([''] + labelsx)
+    ax.set_yticklabels([''] + labels)
+    ax.xaxis.set_major_locator(MultipleLocator(1))
+    ax.yaxis.set_major_locator(MultipleLocator(1))
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.tight_layout()
+    plt.savefig('confusion_matrixEPOCH{}'.format(epoch), dpi=196, bbox_inches='tight')
+
+    #Now the normalize the diagonal entries
+    cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+
+    #The diagonal entries are the accuracies of each class
+    return cm.diagonal()
