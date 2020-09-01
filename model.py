@@ -15,12 +15,6 @@ class TenInputsNet(nn.Module):
         self.conv2 = nn.Conv2d(
             in_channels=16 * num_inputs, out_channels=32, kernel_size=3, stride=1)
 
-        self.conv3 = nn.Conv2d(
-            in_channels=32, out_channels=32, kernel_size=3, stride=1)
-
-        self.conv4 = nn.Conv2d(
-            in_channels=32, out_channels=32, kernel_size=3, stride=1)
-
         self.linear1 = nn.Linear(in_features=28800, out_features=64)
         self.linear2 = nn.Linear(in_features=64, out_features=32)
         self.linear3 = nn.Linear(in_features=32, out_features=12)
