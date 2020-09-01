@@ -39,7 +39,7 @@ if torch.cuda.is_available():
     is_cuda = True
 
 if LOAD_CHECKPOINT:
-    checkpoint = torch.load('/homes/kb316/FinalProject/FinalResults/ValSplit/Epoch_40_Loss_0.088536_Acc_97.531.pth')
+    checkpoint = torch.load('/homes/kb316/listen_like_a_bat/FinalResults/ValSplit/Epoch_40_Loss_0.088536_Acc_97.531.pth')
     model.load_state_dict(checkpoint)
 
 
